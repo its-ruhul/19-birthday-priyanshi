@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday!</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- AOS Animation CSS -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <!-- GSAP for cursor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="styles/global.css">
+
+  <style>
+    /* Styling for the new jump button */
+    .jump-button {
+      display: inline-block;
+      margin-top: 2rem;
+      padding: 1rem 2.5rem;
+      font-size: 1.25rem;
+      color: #fff;
+      background: linear-gradient(45deg, #ff69b4, #ff99cc);
+      border-radius: 50px;
+      text-decoration: none;
+      box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+      transition: transform 0.3s, box-shadow 0.3s;
+      font-family: 'Comic Neue', cursive;
+      position: relative;
+      z-index: 20;
+    }
+
+    .jump-button:hover {
+      transform: scale(1.05) translateY(-3px);
+      box-shadow: 0 8px 20px rgba(255, 105, 180, 0.6);
+    }
+  </style>
+</head>
+
+<body data-audio="assets/music/index.mp3">
+  <!-- Custom Cursor -->
+  <div class="custom-cursor">
+    <svg viewBox="0 0 24 24">
+      <path fill="#ff69b4"
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+    </svg>
+  </div>
+
+  <!-- Canvas for the falling cherry blossoms -->
+  <canvas id="sakura-canvas"></canvas>
+
+  <!-- Section 1: Hero Welcome -->
+  <header class="h-screen relative flex items-center justify-center text-white overflow-hidden">
+    <!-- Video background -->
+    <video autoplay loop muted playsinline class="absolute top-0 left-0 w-full h-full object-cover z-[-1]">
+      <source src="assets/sa.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+
+    <!-- Overlay to make text readable -->
+    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+
+    <div class="text-center z-10 p-4" data-aos="fade-in" data-aos-duration="1500">
+      <!-- Added cake gif as requested -->
+      <img src="assets/cake.gif" alt="Birthday Cake" class="w-48 md:w-64 mx-auto mb-4 object-contain drop-shadow-md">
+      <h1 class="text-5xl md:text-7xl font-anime drop-shadow-lg">Happy Birthday, Priyanshi!</h1>
+      <p class="mt-4 text-xl font-semibold">Let's celebrate 19 years of your magic!</p>
+
+      <!-- New Jump Button -->
+      <a href="pages/cause.html" class="jump-button">Next Page ✨</a>
+    </div>
+  </header>
+
+  <!-- AOS JS -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
+  </script>
+
+  <!-- Global JS for Sakura and Cursor -->
+  <script src="scripts/global.js"></script>
+</body>
+
+</html>
