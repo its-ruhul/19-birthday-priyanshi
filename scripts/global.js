@@ -92,78 +92,188 @@ document.addEventListener('DOMContentLoaded', function() {
         const audioFiles = audioData.split(',');
         let currentAudioIndex = 0;
         let audio = new Audio(audioFiles[currentAudioIndex]);
-        audio.loop = audioFiles.length === 1; // loop if only one file
-        audio.volume = 0;
+        audio.loop = audioFiles.length === 1;
+        audio.volume = 0; // Start at 0 for fade-in
 
-        // Try to play on load
-        const playAudio = () => {
+        // --- Create Floating Music Control Button ---
+        const musicBtn = document.createElement('button');
+        musicBtn.id = 'music-toggle-btn';
+        musicBtn.innerHTML = '🎵 Click to Play Music';
+        musicBtn.style.position = 'fixed';
+        musicBtn.style.bottom = '20px';
+        musicBtn.style.right = '20px';
+        musicBtn.style.zIndex = '9999';
+        musicBtn.style.padding = '10px 15px';
+        musicBtn.style.background = 'rgba(255, 105, 180, 0.8)';
+        musicBtn.style.backdropFilter = 'blur(10px)';
+        musicBtn.style.color = '#fff';
+        musicBtn.style.border = '2px solid rgba(255, 255, 255, 0.5)';
+        musicBtn.style.borderRadius = '50px';
+        musicBtn.style.cursor = 'pointer';
+        musicBtn.style.boxShadow = '0 4px 15px rgba(255, 105, 180, 0.4)';
+        musicBtn.style.fontFamily = "'Comic Neue', cursive, sans-serif";
+        musicBtn.style.fontSize = '14px';
+        musicBtn.style.transition = 'all 0.3s ease';
+        
+        // Add hover effects via JS since it's inline
+        musicBtn.addEventListener('mouseenter', () => {
+            musicBtn.style.transform = 'scale(1.05)';
+            musicBtn.style.background = 'rgba(255, 105, 180, 1)';
+        });
+        musicBtn.addEventListener('mouseleave', () => {
+            musicBtn.style.transform = 'scale(1)';
+            musicBtn.style.background = 'rgba(255, 105, 180, 0.8)';
+        });
+        
+        document.body.appendChild(musicBtn);
+
+        let isPlaying = false;
+        let userInteracted = false;
+
+        // Check user preference from previous pages
+        const storedPreference = sessionStorage.getItem('musicPreference');
+        const shouldPlay = storedPreference !== 'paused';
+
+        const updateBtnState = () => {
+            if (isPlaying) {
+                musicBtn.innerHTML = '🔊 Music Playing';
+                musicBtn.style.animation = 'none';
+            } else {
+                musicBtn.innerHTML = '🔇 Click to Play Music';
+                if (!userInteracted && shouldPlay) {
+                    // Add a subtle pulse if it's supposed to be playing but blocked
+                    musicBtn.style.animation = 'pulse 2s infinite';
+                    if (!document.getElementById('music-pulse-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'music-pulse-style';
+                        style.innerHTML = `
+                            @keyframes pulse {
+                                0% { box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.7); }
+                                70% { box-shadow: 0 0 0 10px rgba(255, 105, 180, 0); }
+                                100% { box-shadow: 0 0 0 0 rgba(255, 105, 180, 0); }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                } else {
+                    musicBtn.style.animation = 'none';
+                }
+            }
+        };
+
+        const fadeAudioIn = () => {
+            if (typeof gsap !== 'undefined') {
+                gsap.to(audio, { volume: 0.5, duration: 2 });
+            } else {
+                audio.volume = 0.5;
+            }
+        };
+
+        const tryPlayAudio = () => {
+            if (!shouldPlay && !userInteracted) {
+                updateBtnState();
+                return;
+            }
+            
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    // Fade in
-                    if (typeof gsap !== 'undefined') {
-                        gsap.to(audio, { volume: 0.5, duration: 2 });
-                    } else {
-                        audio.volume = 0.5;
-                    }
+                    isPlaying = true;
+                    fadeAudioIn();
+                    updateBtnState();
                 }).catch(error => {
-                    console.log("Autoplay prevented. Waiting for interaction.");
-                    const startAudio = () => {
-                        audio.play();
-                        if (typeof gsap !== 'undefined') {
-                            gsap.to(audio, { volume: 0.5, duration: 2 });
-                        } else {
-                            audio.volume = 0.5;
-                        }
-                        document.removeEventListener('click', startAudio);
+                    console.log("Autoplay prevented by browser. Waiting for user interaction.");
+                    isPlaying = false;
+                    updateBtnState();
+                    
+                    // Attach one-time global interaction listeners as fallback
+                    const startOnInteraction = (e) => {
+                        // Ignore if they clicked the music button (handled separately)
+                        if (e.target === musicBtn || musicBtn.contains(e.target)) return;
+                        // Ignore link clicks (so it doesn't conflict with page transition)
+                        if (e.target.tagName.toLowerCase() === 'a' || e.target.closest('a')) return;
+                        
+                        userInteracted = true;
+                        sessionStorage.setItem('musicPreference', 'playing');
+                        audio.play().then(() => {
+                            isPlaying = true;
+                            fadeAudioIn();
+                            updateBtnState();
+                        }).catch(err => console.log("Still blocked:", err));
+                        
+                        ['click', 'touchstart', 'keydown'].forEach(evt => document.removeEventListener(evt, startOnInteraction));
                     };
-                    document.addEventListener('click', startAudio, { once: true });
+                    
+                    ['click', 'touchstart', 'keydown'].forEach(evt => document.addEventListener(evt, startOnInteraction, { once: true }));
                 });
             }
         };
-        
-        playAudio();
+
+        // Explicit toggle button handler
+        musicBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent document click handler
+            userInteracted = true;
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+                sessionStorage.setItem('musicPreference', 'paused');
+            } else {
+                audio.play().then(() => {
+                    isPlaying = true;
+                    fadeAudioIn(); // In case it was at 0
+                    sessionStorage.setItem('musicPreference', 'playing');
+                }).catch(err => console.error("Play failed:", err));
+            }
+            updateBtnState();
+        });
+
+        // Initial attempt to play
+        tryPlayAudio();
 
         // Play next track if there are multiple
         audio.addEventListener('ended', () => {
             currentAudioIndex++;
             if (currentAudioIndex < audioFiles.length) {
                 audio.src = audioFiles[currentAudioIndex];
-                audio.play();
-                audio.loop = currentAudioIndex === audioFiles.length - 1; // Last track can loop
+                audio.play().catch(e => console.error("Error playing next track:", e));
+                audio.loop = currentAudioIndex === audioFiles.length - 1; // Last track loops
             }
         });
 
         // Intercept links for smooth transitions
+        const handleNavigation = (href) => {
+            if (isPlaying && typeof gsap !== 'undefined') {
+                // Fade out audio before navigating
+                gsap.to(audio, {
+                    volume: 0,
+                    duration: 1,
+                    onComplete: () => {
+                        window.location.href = href;
+                    }
+                });
+            } else {
+                // Not playing or no GSAP, navigate immediately
+                window.location.href = href;
+            }
+        };
+
         const links = document.querySelectorAll('a[href]');
         links.forEach(link => {
             link.addEventListener('click', function(e) {
                 const href = this.getAttribute('href');
-                // Target valid internal links, exclude anchor links and javascript:
                 if (href && !href.startsWith('http') && !href.startsWith('javascript:') && !href.startsWith('#')) {
                     e.preventDefault();
-                    if (typeof gsap !== 'undefined') {
-                        // Fade out audio
-                        gsap.to(audio, {
-                            volume: 0,
-                            duration: 1,
-                            onComplete: () => {
-                                window.location.href = href;
-                            }
-                        });
-                    } else {
-                        window.location.href = href;
-                    }
+                    handleNavigation(href);
                 }
             });
         });
         
-        // Handle javascript:history.back() specifically to allow fade out
+        // Handle javascript:history.back()
         const backButtons = document.querySelectorAll('a[href="javascript:history.back()"]');
         backButtons.forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                if (typeof gsap !== 'undefined') {
+                if (isPlaying && typeof gsap !== 'undefined') {
                     gsap.to(audio, {
                         volume: 0,
                         duration: 1,
